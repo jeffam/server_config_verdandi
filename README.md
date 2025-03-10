@@ -39,12 +39,6 @@ Applications are generally configured to restart on server boot via `restart: un
 
 Caddy is mainly used as a reverse proxy for containerized web apps on this server. This is done with the [caddy-docker-proxy](https://github.com/lucaslorentz/caddy-docker-proxy) module which uses container labels to dynamically configure Caddy. This is pretty similar to a feature in Traefik, although much simpler to configure here.
 
-As of 2025-03, this playbook doesn't configure one requirement: the dedicated Docker network for Caddy and containers that it proxies. So this command was required before the containers could start:
-
-```
-docker network create caddy
-```
-
 ### Uptime Kuma
 
 https://uptime.ilr.cornell.edu/

@@ -52,6 +52,9 @@
         name: ubuntu
         groups: docker
         append: yes
+    - name: Create the caddy network
+      community.docker.docker_network:
+        name: caddy
     - name: Ensure that the apps directory exists.
       become: yes
       ansible.builtin.file:
