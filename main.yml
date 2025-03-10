@@ -1,0 +1,88 @@
+- name: Configure verdandi
+  hosts: verdandi.ilr.cornell.edu
+  vars_files:
+    - secrets.enc
+  tasks:
+    - name: Set host name
+      become: yes
+      ansible.builtin.hostname:
+        name: verdandi
+    - name: Add the FQDN and hostname to hosts file
+      become: yes
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: 52.207.3.100 verdandi verdandi.ilr.cornell.edu
+        create: yes
+    - name: Set time zone
+      become: yes
+      community.general.timezone:
+        name: America/New_York
+    - name: Disable root SSH
+      become: yes
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^PermitRootLogin"
+        line: "PermitRootLogin no"
+        state: present
+      notify: restart ssh
+    - name: Disable SSH password authentication
+      become: yes
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^PasswordAuthentication"
+        line: "PasswordAuthentication no"
+        state: present
+      notify: restart ssh
+    - name: Install required packages
+      become: yes
+      ansible.builtin.apt:
+        pkg:
+          - vim
+          - btop
+          - tree
+          - unattended-upgrades
+          - docker.io
+          - docker-compose-v2
+        update_cache: yes
+        cache_valid_time: 3600
+    - name: Add the user ubuntu to the `docker` group
+      # The `docker` group is created by the `docker.io` package.
+      become: yes
+      ansible.builtin.user:
+        name: ubuntu
+        groups: docker
+        append: yes
+    - name: Ensure that the apps directory exists.
+      become: yes
+      ansible.builtin.file:
+        path: /apps
+        state: directory
+        owner: ubuntu
+    - name: Ensure that the container apps config and data directories exist.
+      ansible.builtin.file:
+        path: '{{ item }}'
+        state: directory
+      loop:
+        - /apps/whoami
+        - /apps/caddy
+        - /apps/caddy/data
+        - /apps/uptime-kuma
+        - /apps/uptime-kuma/data
+    - name: Copy docker compose and config files
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      loop:
+        - src: files/whoami-docker-compose.yml
+          dest: /apps/whoami/compose.yml
+        - src: files/caddy-docker-compose.yml
+          dest: /apps/caddy/compose.yml
+        - src: files/uptime-kuma-docker-compose.yml
+          dest: /apps/uptime-kuma/compose.yml
+
+  handlers:
+    - name: restart ssh
+      become: yes
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
